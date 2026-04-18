@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Jumper</title>
+<style>
+body{background:#111;color:#fff;font-family:sans-serif;text-align:center;margin:0;padding:20px}
+canvas{background:linear-gradient(#87ceeb,#fff);border:2px solid #6bcb77;display:block;margin:20px auto}
+a{color:#4facfe}
+</style></head><body>
+<h1>🏃 Jumper</h1>
+<div>Score: <span id="score">0</span></div>
+<canvas id="c" width="600" height="250"></canvas>
+<p>SPACE to jump</p>
+<p><a href="index.html">← Back to menu</a></p>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+const G=200;
+let p={x:50,y:G,vy:0,w:30,h:30},obs=[],score=0,speed=5,over=false;
+function jump(){if(p.y>=G)p.vy=-12;}
+function reset(){p.y=G;p.vy=0;obs=[];score=0;speed=5;over=false;}
+document.addEventListener("keydown",e=>{
+  if(e.key===" "){if(over)reset();else jump();}
+});
+let spawnTimer=0;
+function loop(){
+  x.clearRect(0,0,600,250);
+  x.fillStyle="#8B4513";x.fillRect(0,G+30,600,20);
+  if(!over){
+    p.vy+=0.6;p.y+=p.vy;
+    if(p.y>G){p.y=G;p.vy=0;}
+    spawnTimer++;
+    if(spawnTimer>60+Math.random()*60){obs.push({x:600,y:G,w:20,h:30});spawnTimer=0;}
+    obs.forEach(o=>o.x-=speed);
+    obs=obs.filter(o=>o.x>-50);
+    score++;
+    if(score%500===0)speed+=0.5;
+    for(let o of obs){
+      if(o.x<p.x+p.w&&o.x+o.w>p.x&&o.y<p.y+p.h&&o.y+o.h>p.y){over=true;}
+    }
+  }
+  x.fillStyle="#4facfe";x.fillRect(p.x,p.y,p.w,p.h);
+  x.fillStyle="#2d5016";obs.forEach(o=>x.fillRect(o.x,o.y,o.w,o.h));
+  if(over){x.fillStyle="#000";x.font="28px sans-serif";x.fillText("Game Over - Space to restart",130,120);}
+  document.getElementById("score").textContent=score;
+  requestAnimationFrame(loop);
+}
+loop();
+</script></body></html>

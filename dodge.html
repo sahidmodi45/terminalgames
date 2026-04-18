@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Dodge</title>
+<style>
+body{background:#111;color:#fff;font-family:sans-serif;text-align:center;margin:0;padding:20px}
+canvas{background:#000;border:2px solid #f5576c;display:block;margin:20px auto}
+a{color:#4facfe}
+</style></head><body>
+<h1>🚗 Dodge</h1>
+<div>Score: <span id="score">0</span></div>
+<canvas id="c" width="400" height="500"></canvas>
+<p>← → to move</p>
+<p><a href="index.html">← Back to menu</a></p>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+let player={x:180,y:440,w:40,h:40},obs=[],score=0,speed=3,left=false,right=false,over=false;
+function reset(){player.x=180;obs=[];score=0;speed=3;over=false;}
+function spawn(){obs.push({x:Math.random()*360,y:-40,w:40,h:40});}
+setInterval(()=>{if(!over)spawn();},800);
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft")left=true;
+  if(e.key==="ArrowRight")right=true;
+  if(over&&e.key===" ")reset();
+});
+document.addEventListener("keyup",e=>{
+  if(e.key==="ArrowLeft")left=false;
+  if(e.key==="ArrowRight")right=false;
+});
+function loop(){
+  x.fillStyle="#000";x.fillRect(0,0,400,500);
+  if(!over){
+    if(left)player.x-=5;
+    if(right)player.x+=5;
+    player.x=Math.max(0,Math.min(360,player.x));
+    obs.forEach(o=>o.y+=speed);
+    obs=obs.filter(o=>o.y<500);
+    score++;
+    if(score%500===0)speed+=0.5;
+    for(let o of obs){
+      if(o.x<player.x+player.w&&o.x+o.w>player.x&&o.y<player.y+player.h&&o.y+o.h>player.y){
+        over=true;
+      }
+    }
+  }
+  x.fillStyle="#4facfe";x.fillRect(player.x,player.y,player.w,player.h);
+  x.fillStyle="#f5576c";obs.forEach(o=>x.fillRect(o.x,o.y,o.w,o.h));
+  if(over){x.fillStyle="#fff";x.font="30px sans-serif";x.fillText("Game Over",140,240);x.font="18px sans-serif";x.fillText("Press SPACE to restart",120,280);}
+  document.getElementById("score").textContent=score;
+  requestAnimationFrame(loop);
+}
+loop();
+</script></body></html>
