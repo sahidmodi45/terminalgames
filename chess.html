@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Validated Chess</title>
+<style>
+body{background:#111;color:#fff;font-family:Arial;text-align:center}
+#board{width:480px;margin:20px auto;display:grid;grid-template-columns:repeat(8,60px)}
+.square{width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer}
+.light{background:#f0d9b5}
+.dark{background:#b58863}
+.sel{outline:4px solid #4fd1c5;box-sizing:border-box}
+button{padding:8px 12px;border:none;border-radius:6px;background:#4f46e5;color:white;margin:6px}
+</style>
+</head>
+<body>
+
+<h2>Validated Chess (Python Engine)</h2>
+<div id="board"></div>
+<button onclick="undo()">Undo</button>
+<button onclick="resetBoard()">Reset</button>
+<div id="status"></div>
+
+<script>
+const pieces={"r":"♜","n":"♞","b":"♝","q":"♛","k":"♚","p":"♟","R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔","P":"♙"};
+let boardArr=[];
+let whiteToMove=true;
+let selected=-1;
+
+function idxToAlg(i){return String.fromCharCode(97+(i%8))+(8-Math.floor(i/8));}
+
+function loadState(){
+  fetch("/state").then(r=>r.json()).then(j=>{
+    applyFEN(j.fen);
+    whiteToMove = (j.turn==="white");
+    draw();
+  });
+}
+
+function applyFEN(fen){
+  let parts = fen.split(" ")[0].split("/");
+  boardArr=[];
+  for(let row of parts){
+    for(let ch of row){
+      if(!isNaN(ch)){
+        for(let i=0;i<parseInt(ch);i++) boardArr.push("");
+      } else boardArr.push(ch);
+    }
+  }
+}
+
+function draw(){
+  let b=document.getElementById("board");
+  b.innerHTML="";
+  for(let i=0;i<64;i++){
+    let rank=8-Math.floor(i/8);
+    let file=i%8;
+    let light=((file+rank)%2==0);
+    let d=document.createElement("div");
+    d.className="square "+(light?"light":"dark");
+    d.dataset.i=i;
+    d.textContent=boardArr[i]?pieces[boardArr[i]]:"";
+    if(i===selected) d.classList.add("sel");
+    d.onclick=()=>clickSquare(i);
+    b.appendChild(d);
+  }
+  document.getElementById("status").textContent=(whiteToMove?"White":"Black")+" to move";
+}
+
+function clickSquare(i){
+  let p=boardArr[i];
+  if(selected===-1){
+    if(!p) return;
+    if((p===p.toUpperCase())!==whiteToMove) return;
+    selected=i; draw();
+  }else{
+    let from=idxToAlg(selected);
+    let to=idxToAlg(i);
+    fetch("/move",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from:from,to:to})})
+    .then(r=>r.json()).then(j=>{
+      if(j.ok){
+        loadState();
+      }else alert("Illegal move");
+      selected=-1;
+    });
+  }
+}
+
+function undo(){
+  fetch("/undo",{method:"POST"}).then(()=>loadState());
+}
+
+function resetBoard(){
+  fetch("/reset",{method:"POST"}).then(()=>loadState());
+}
+
+loadState();
+</script>
+</body>
+</html>
