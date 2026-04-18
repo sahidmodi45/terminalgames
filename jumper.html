@@ -1,45 +1,91 @@
 ﻿<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Jumper</title>
+<html><head><meta charset="UTF-8"><title>Pixel Athlete</title>
 <style>
-body{background:#111;color:#fff;font-family:sans-serif;text-align:center;margin:0;padding:20px}
-canvas{background:linear-gradient(#87ceeb,#fff);border:2px solid #6bcb77;display:block;margin:20px auto}
-a{color:#4facfe}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#fff;font-family:'Press Start 2P',monospace;min-height:100vh;padding:20px;text-align:center}
+h1{font-size:2.2em;color:#ffd93d;text-shadow:3px 3px 0 #f5576c;margin-bottom:15px}
+.hud{font-size:1.1em;margin:10px;letter-spacing:2px}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;border:4px solid #ffd93d;display:block;margin:15px auto;box-shadow:0 0 20px rgba(255,217,61,0.3)}
+a{color:#4facfe;display:block;margin-top:15px;text-decoration:none}
+.hint{opacity:0.7;margin-top:10px;font-size:0.85em}
 </style></head><body>
-<h1>🏃 Jumper</h1>
-<div>Score: <span id="score">0</span></div>
-<canvas id="c" width="600" height="250"></canvas>
-<p>SPACE to jump</p>
-<p><a href="index.html">← Back to menu</a></p>
+<h1>🏃 PIXEL ATHLETE</h1>
+<div class="hud">SCORE <span id="score">0</span> · BEST <span id="best">0</span></div>
+<canvas id="c" width="800" height="300"></canvas>
+<p class="hint">SPACE or ↑ jump · ↓ duck · double-tap to double-jump</p>
+<a href="index.html">← Back to menu</a>
 <script>
 const c=document.getElementById("c"),x=c.getContext("2d");
-const G=200;
-let p={x:50,y:G,vy:0,w:30,h:30},obs=[],score=0,speed=5,over=false;
-function jump(){if(p.y>=G)p.vy=-12;}
-function reset(){p.y=G;p.vy=0;obs=[];score=0;speed=5;over=false;}
+x.imageSmoothingEnabled=false;
+let best=parseInt(localStorage.getItem("jumperBest")||"0");
+document.getElementById("best").textContent=best;
+const G=220;
+let p,obs,clouds,buildings,score,speed,over,frame,jumps,ducking;
+function reset(){p={x:80,y:G,vy:0,w:30,h:40};obs=[];clouds=[{x:100,y:40},{x:400,y:70},{x:650,y:30}];buildings=[];for(let i=0;i<6;i++)buildings.push({x:i*150,h:60+Math.random()*80});score=0;speed=6;over=false;frame=0;jumps=0;ducking=false;}
+reset();
+function jump(){if(p.y>=G){p.vy=-13;jumps=1;}else if(jumps===1){p.vy=-11;jumps=2;}}
 document.addEventListener("keydown",e=>{
-  if(e.key===" "){if(over)reset();else jump();}
+  if(e.key===" "||e.key==="ArrowUp"){e.preventDefault();if(over)reset();else jump();}
+  if(e.key==="ArrowDown")ducking=true;
 });
-let spawnTimer=0;
-function loop(){
-  x.clearRect(0,0,600,250);
-  x.fillStyle="#8B4513";x.fillRect(0,G+30,600,20);
-  if(!over){
-    p.vy+=0.6;p.y+=p.vy;
-    if(p.y>G){p.y=G;p.vy=0;}
-    spawnTimer++;
-    if(spawnTimer>60+Math.random()*60){obs.push({x:600,y:G,w:20,h:30});spawnTimer=0;}
-    obs.forEach(o=>o.x-=speed);
-    obs=obs.filter(o=>o.x>-50);
-    score++;
-    if(score%500===0)speed+=0.5;
-    for(let o of obs){
-      if(o.x<p.x+p.w&&o.x+o.w>p.x&&o.y<p.y+p.h&&o.y+o.h>p.y){over=true;}
-    }
+document.addEventListener("keyup",e=>{if(e.key==="ArrowDown")ducking=false;});
+const OBSTACLES=["trash","cone","banana","hydrant","bird"];
+function spawnObs(){const t=OBSTACLES[Math.floor(Math.random()*OBSTACLES.length)];let o={x:820,type:t};if(t==="trash"){o.w=22;o.h=34;o.y=G+6-o.h;}else if(t==="cone"){o.w=20;o.h=26;o.y=G+6-o.h;}else if(t==="banana"){o.w=24;o.h=10;o.y=G+6-o.h;}else if(t==="hydrant"){o.w=18;o.h=28;o.y=G+6-o.h;}else{o.w=28;o.h=18;o.y=G-50;}obs.push(o);}
+let obsTimer=0;
+function drawAthlete(){
+  const px=p.x,py=p.y;
+  x.save();
+  const running=p.y>=G&&!ducking;
+  const legFrame=Math.floor(frame/5)%2;
+  if(ducking&&p.y>=G){
+    x.fillStyle="#f5576c";x.fillRect(px,py+15,30,15);
+    x.fillStyle="#ffd7b5";x.fillRect(px+22,py+13,8,8);
+    x.fillStyle="#000";x.fillRect(px+28,py+15,1,1);
+    x.fillStyle="#4a4a4a";x.fillRect(px,py+28,10,4);x.fillRect(px+20,py+28,10,4);
+  } else {
+    x.fillStyle="#ffd7b5";x.fillRect(px+8,py,12,10);
+    x.fillStyle="#2d2d2d";x.fillRect(px+8,py-2,12,4);
+    x.fillStyle="#000";x.fillRect(px+16,py+4,2,2);
+    x.fillStyle="#f5576c";x.fillRect(px+6,py+10,16,15);
+    x.fillStyle="#fff";x.fillRect(px+10,py+14,8,3);
+    x.fillStyle="#ffd7b5";
+    if(running&&legFrame===0){x.fillRect(px+4,py+12,4,10);x.fillRect(px+20,py+12,4,10);}
+    else{x.fillRect(px-2,py+10,5,10);x.fillRect(px+22,py+10,5,10);}
+    x.fillStyle="#4facfe";x.fillRect(px+6,py+25,7,10);x.fillRect(px+15,py+25,7,10);
+    x.fillStyle="#000";
+    if(running&&legFrame===0){x.fillRect(px+6,py+35,9,3);x.fillRect(px+15,py+35,9,3);}
+    else{x.fillRect(px+2,py+33,9,3);x.fillRect(px+17,py+35,10,3);}
   }
-  x.fillStyle="#4facfe";x.fillRect(p.x,p.y,p.w,p.h);
-  x.fillStyle="#2d5016";obs.forEach(o=>x.fillRect(o.x,o.y,o.w,o.h));
-  if(over){x.fillStyle="#000";x.font="28px sans-serif";x.fillText("Game Over - Space to restart",130,120);}
+  x.restore();
+}
+function drawObs(o){
+  if(o.type==="trash"){x.fillStyle="#4a4a4a";x.fillRect(o.x,o.y+4,o.w,o.h-4);x.fillStyle="#2d2d2d";x.fillRect(o.x-2,o.y,o.w+4,6);x.fillStyle="#666";x.fillRect(o.x+3,o.y+10,2,o.h-14);x.fillRect(o.x+10,o.y+10,2,o.h-14);x.fillRect(o.x+17,o.y+10,2,o.h-14);}
+  else if(o.type==="cone"){x.fillStyle="#ff6f00";x.beginPath();x.moveTo(o.x+o.w/2,o.y);x.lineTo(o.x,o.y+o.h);x.lineTo(o.x+o.w,o.y+o.h);x.closePath();x.fill();x.fillStyle="#fff";x.fillRect(o.x+3,o.y+o.h-14,o.w-6,3);x.fillStyle="#ff6f00";x.fillRect(o.x+4,o.y+o.h-12,o.w-8,1);x.fillStyle="#2d2d2d";x.fillRect(o.x-3,o.y+o.h,o.w+6,3);}
+  else if(o.type==="banana"){x.fillStyle="#ffeb3b";x.beginPath();x.ellipse(o.x+o.w/2,o.y+o.h/2,o.w/2,o.h/2,0.3,0,Math.PI*2);x.fill();x.fillStyle="#8d6e63";x.fillRect(o.x+2,o.y+o.h/2-2,3,2);}
+  else if(o.type==="hydrant"){x.fillStyle="#f5576c";x.fillRect(o.x+2,o.y+6,o.w-4,o.h-6);x.fillRect(o.x,o.y+12,o.w,4);x.fillStyle="#b71c1c";x.fillRect(o.x+o.w/2-3,o.y,6,8);x.fillRect(o.x-3,o.y+16,3,4);x.fillRect(o.x+o.w,o.y+16,3,4);}
+  else if(o.type==="bird"){const bf=Math.floor(frame/8)%2;x.fillStyle="#3f51b5";x.fillRect(o.x+6,o.y+6,16,8);x.fillRect(o.x+20,o.y+4,6,6);x.fillStyle="#ff9100";x.fillRect(o.x+26,o.y+6,3,2);if(bf===0){x.fillStyle="#3f51b5";x.fillRect(o.x,o.y,10,6);x.fillRect(o.x+16,o.y,10,6);}else{x.fillStyle="#3f51b5";x.fillRect(o.x+2,o.y+10,8,6);x.fillRect(o.x+18,o.y+10,8,6);}}
+}
+function loop(){
+  x.fillStyle="#87ceeb";x.fillRect(0,0,800,200);
+  x.fillStyle="#f093fb";x.fillRect(0,130,800,70);
+  buildings.forEach(b=>{x.fillStyle="#4a4a6a";x.fillRect(b.x,200-b.h,100,b.h);x.fillStyle="#ffeb3b";for(let wy=200-b.h+10;wy<195;wy+=15)for(let wx=b.x+5;wx<b.x+95;wx+=15){if((wx+wy)%4<2)x.fillRect(wx,wy,6,8);}});
+  clouds.forEach(cl=>{x.fillStyle="#fff";x.fillRect(cl.x,cl.y,40,10);x.fillRect(cl.x+5,cl.y-5,30,10);x.fillRect(cl.x+10,cl.y-10,20,10);});
+  x.fillStyle="#3e2723";x.fillRect(0,G+40,800,40);
+  x.fillStyle="#5d4037";for(let i=(frame*speed)%40;i<800;i+=40)x.fillRect(-i,G+42,20,3);
+  if(!over){
+    p.vy+=0.7;p.y+=p.vy;if(p.y>G){p.y=G;p.vy=0;jumps=0;}
+    obsTimer++;if(obsTimer>Math.max(30,70-score/100)){spawnObs();obsTimer=0;}
+    obs.forEach(o=>o.x-=speed);obs=obs.filter(o=>o.x>-50);
+    buildings.forEach(b=>{b.x-=speed*0.3;if(b.x<-100){b.x+=900;b.h=60+Math.random()*80;}});
+    clouds.forEach(cl=>{cl.x-=speed*0.5;if(cl.x<-50)cl.x=850;});
+    score++;speed=6+score/500;frame++;
+    const ph={x:p.x+4,y:ducking?p.y+15:p.y,w:22,h:ducking?15:40};
+    for(const o of obs){if(o.x<ph.x+ph.w&&o.x+o.w>ph.x&&o.y<ph.y+ph.h&&o.y+o.h>ph.y){over=true;if(score>best){best=score;localStorage.setItem("jumperBest",best);document.getElementById("best").textContent=best;}}}
+  }
+  obs.forEach(drawObs);
+  drawAthlete();
   document.getElementById("score").textContent=score;
+  if(over){x.fillStyle="rgba(0,0,0,0.7)";x.fillRect(0,0,800,300);x.fillStyle="#ffd93d";x.font="bold 30px sans-serif";x.textAlign="center";x.fillText("GAME OVER",400,130);x.fillStyle="#fff";x.font="18px sans-serif";x.fillText("SCORE: "+score,400,165);x.fillText("Press SPACE to retry",400,195);}
   requestAnimationFrame(loop);
 }
 loop();
