@@ -2,40 +2,41 @@
 <html><head><meta charset="UTF-8"><title>Asteroid Field</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:'Courier New',monospace;min-height:100vh;padding:20px;text-align:center;overflow:hidden}
-h1{font-size:2.5em;background:linear-gradient(90deg,#4facfe,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px;letter-spacing:3px}
-.hud{font-size:1.2em;margin:10px;display:flex;justify-content:center;gap:30px}
+body{background:#000;color:#fff;font-family:'Courier New',monospace;min-height:100vh;padding:10px;text-align:center}
+h1{font-size:1.8em;background:linear-gradient(90deg,#4facfe,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;letter-spacing:2px}
+.hud{font-size:0.95em;margin:6px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
 .hud span{color:#4facfe}
-canvas{background:#000;border:2px solid #4facfe;box-shadow:0 0 40px rgba(79,172,254,0.5),inset 0 0 40px rgba(79,172,254,0.1);display:block;margin:10px auto;border-radius:4px}
-a{color:#4facfe;display:block;margin-top:15px;text-decoration:none}
-.hint{opacity:0.6;margin-top:10px;font-size:0.9em}
+canvas{background:#000;border:2px solid #4facfe;box-shadow:0 0 30px rgba(79,172,254,0.5);display:block;margin:8px auto;border-radius:4px;max-width:95vw;height:auto}
+a{color:#4facfe;display:block;margin-top:10px;text-decoration:none}
+.hint{opacity:0.6;margin-top:8px;font-size:0.8em}
 </style></head><body>
 <h1>🚀 ASTEROID FIELD</h1>
-<div class="hud">SCORE: <span id="score">0</span> · BEST: <span id="best">0</span> · LIVES: <span id="lives">3</span></div>
-<canvas id="c" width="500" height="600"></canvas>
+<div class="hud">SCORE <span id="score">0</span> · BEST <span id="best">0</span> · LIVES <span id="lives">3</span></div>
+<canvas id="c" width="420" height="500"></canvas>
 <p class="hint">← → A D or mouse to steer · SPACE restart</p>
 <a href="index.html">← Back to menu</a>
 <script>
 const c=document.getElementById("c"),x=c.getContext("2d");
+const W=420,H=500;
 let best=parseInt(localStorage.getItem("dodgeBest")||"0");
 document.getElementById("best").textContent=best;
-const stars=[];for(let i=0;i<150;i++)stars.push({x:Math.random()*500,y:Math.random()*600,z:Math.random()*2+0.3,r:Math.random()*1.5});
+const stars=[];for(let i=0;i<120;i++)stars.push({x:Math.random()*W,y:Math.random()*H,z:Math.random()*2+0.3,r:Math.random()*1.5});
 let ship,asteroids,particles,score,lives,speed,over,invuln,left,right,mouseX=null;
-function reset(){ship={x:250,y:520,w:30,h:40,vx:0};asteroids=[];particles=[];score=0;lives=3;speed=3;over=false;invuln=0;}
+function reset(){ship={x:W/2,y:H-60,w:30,h:40,vx:0};asteroids=[];particles=[];score=0;lives=3;speed=3;over=false;invuln=0;}
 reset();
-function spawnAsteroid(){const size=15+Math.random()*25;asteroids.push({x:Math.random()*(500-size*2)+size,y:-size,r:size,vy:speed+Math.random()*2,vx:(Math.random()-0.5)*1.5,rot:0,vr:(Math.random()-0.5)*0.1,vertices:Array.from({length:8},()=>0.7+Math.random()*0.5)});}
-function spawnParticle(px,py,col){for(let i=0;i<10;i++)particles.push({x:px,y:py,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:30,col:col});}
+function spawnAsteroid(){const size=14+Math.random()*22;asteroids.push({x:Math.random()*(W-size*2)+size,y:-size,r:size,vy:speed+Math.random()*2,vx:(Math.random()-0.5)*1.2,rot:0,vr:(Math.random()-0.5)*0.1,vertices:Array.from({length:8},()=>0.7+Math.random()*0.5)});}
+function spawnParticle(px,py,col){for(let i=0;i<10;i++)particles.push({x:px,y:py,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:30,col});}
 let aTimer=0;
 document.addEventListener("keydown",e=>{
-  if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")left=true;
-  if(e.key==="ArrowRight"||e.key==="d"||e.key==="D")right=true;
+  if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A"){e.preventDefault();left=true;}
+  if(e.key==="ArrowRight"||e.key==="d"||e.key==="D"){e.preventDefault();right=true;}
   if(e.key===" "&&over)reset();
 });
 document.addEventListener("keyup",e=>{
   if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A")left=false;
   if(e.key==="ArrowRight"||e.key==="d"||e.key==="D")right=false;
 });
-c.addEventListener("mousemove",e=>{const r=c.getBoundingClientRect();mouseX=(e.clientX-r.left)*(500/r.width);});
+c.addEventListener("mousemove",e=>{const r=c.getBoundingClientRect();mouseX=(e.clientX-r.left)*(W/r.width);});
 function drawShip(s){
   x.save();x.translate(s.x,s.y);
   if(invuln>0&&Math.floor(invuln/3)%2)x.globalAlpha=0.3;
@@ -57,16 +58,16 @@ function drawAsteroid(a){
   x.restore();
 }
 function loop(){
-  x.fillStyle="rgba(0,0,20,0.4)";x.fillRect(0,0,500,600);
-  stars.forEach(s=>{s.y+=s.z*(over?0.5:2);if(s.y>600){s.y=0;s.x=Math.random()*500;}x.fillStyle=`rgba(255,255,255,${s.z/2.3})`;x.fillRect(s.x,s.y,s.r,s.r);});
+  x.fillStyle="rgba(0,0,20,0.4)";x.fillRect(0,0,W,H);
+  stars.forEach(s=>{s.y+=s.z*(over?0.5:2);if(s.y>H){s.y=0;s.x=Math.random()*W;}x.fillStyle=`rgba(255,255,255,${s.z/2.3})`;x.fillRect(s.x,s.y,s.r,s.r);});
   if(!over){
     if(left)ship.vx-=0.6;if(right)ship.vx+=0.6;
     if(mouseX!==null){const dx=mouseX-ship.x;ship.vx+=dx*0.05;}
     ship.vx*=0.88;ship.x+=ship.vx;
-    if(ship.x<15)ship.x=15;if(ship.x>485)ship.x=485;
+    if(ship.x<15)ship.x=15;if(ship.x>W-15)ship.x=W-15;
     aTimer++;if(aTimer>Math.max(15,40-score/500)){spawnAsteroid();aTimer=0;}
-    asteroids.forEach(a=>{a.y+=a.vy;a.x+=a.vx;a.rot+=a.vr;if(a.x<a.r||a.x>500-a.r)a.vx*=-1;});
-    asteroids=asteroids.filter(a=>a.y<650);
+    asteroids.forEach(a=>{a.y+=a.vy;a.x+=a.vx;a.rot+=a.vr;if(a.x<a.r||a.x>W-a.r)a.vx*=-1;});
+    asteroids=asteroids.filter(a=>a.y<H+50);
     score++;speed=3+score/1000;
     if(invuln>0)invuln--;
     for(const a of asteroids){
@@ -84,7 +85,7 @@ function loop(){
   drawShip(ship);
   document.getElementById("score").textContent=score;
   document.getElementById("lives").textContent=lives;
-  if(over){x.fillStyle="rgba(0,0,0,0.7)";x.fillRect(0,0,500,600);x.fillStyle="#f093fb";x.font="bold 40px 'Courier New'";x.textAlign="center";x.fillText("MISSION FAILED",250,280);x.fillStyle="#4facfe";x.font="20px 'Courier New'";x.fillText("SCORE: "+score,250,320);x.fillText("Press SPACE to retry",250,360);}
+  if(over){x.fillStyle="rgba(0,0,0,0.7)";x.fillRect(0,0,W,H);x.fillStyle="#f093fb";x.font="bold 30px 'Courier New'";x.textAlign="center";x.fillText("MISSION FAILED",W/2,H/2-30);x.fillStyle="#4facfe";x.font="18px 'Courier New'";x.fillText("SCORE: "+score,W/2,H/2);x.fillText("Press SPACE to retry",W/2,H/2+30);}
   requestAnimationFrame(loop);
 }
 loop();
